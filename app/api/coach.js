@@ -29,6 +29,35 @@ const STATUS_SCHEMA = {
   required: ["summary", "advice", "risk"],
 };
 
+// The model's JSON isn't guaranteed to match the schema (Groq only enforces
+// valid JSON), so fill in safe defaults for anything missing or malformed.
+const textOr = (v, fallback) => (typeof v === "string" && v.trim() ? v.trim() : fallback);
+const numberOr = (v, fallback) => {
+  const n = Number(typeof v === "string" ? v.replace(/[^\d.]/g, "") : v);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+
+function cleanSetup(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  return {
+    name: textOr(r.name, "Ipon Group").slice(0, 32),
+    contributionPhp: numberOr(r.contributionPhp, 500),
+    members: Math.min(10, Math.max(2, Math.round(numberOr(r.members, 5)))),
+    schedule: textOr(r.schedule, "weekly"),
+    explanation: textOr(r.explanation, ""),
+  };
+}
+
+function cleanStatus(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const risk = String(r.risk || "").trim().toLowerCase();
+  return {
+    summary: textOr(r.summary, ""),
+    advice: textOr(r.advice, ""),
+    risk: ["low", "medium", "high"].includes(risk) ? risk : "medium",
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
   try {
@@ -43,9 +72,7 @@ export default async function handler(req, res) {
           `Members must be between 2 and 10. Keep the name under 32 characters.\n\nDescription: ${text}`,
         SETUP_SCHEMA
       );
-      result.members = Math.min(10, Math.max(2, Math.round(result.members)));
-      result.name = String(result.name).slice(0, 32);
-      return res.status(200).json(result);
+      return res.status(200).json(cleanSetup(result));
     }
 
     if (mode === "status") {
@@ -56,7 +83,7 @@ export default async function handler(req, res) {
           `\nExplain where the group stands and give one practical next step. Answer in casual Taglish.`,
         STATUS_SCHEMA
       );
-      return res.status(200).json(result);
+      return res.status(200).json(cleanStatus(result));
     }
 
     return res.status(400).json({ error: "mode must be 'setup' or 'status'" });
