@@ -37,65 +37,22 @@ const peso = (n) =>
 
 // ---------- Small UI pieces ----------
 const Icon = {
-  sparkle: (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2zm7 11l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9L19 13z" />
-    </svg>
-  ),
-  bot: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6" />
-    </svg>
-  ),
-  plus: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  ),
-  refresh: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />
-    </svg>
-  ),
   external: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="14" height="14">
-      <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="12" height="12">
+      <path d="M7 17L17 7M8 7h9v9" />
     </svg>
   ),
 };
 
 function Logo() {
   return (
-    <svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#4f5bff" /><stop offset="1" stopColor="#8b5cf6" />
-        </linearGradient>
-        <linearGradient id="logo-p" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#ffd166" /><stop offset="1" stopColor="#f5a524" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="10" fill="url(#logo-g)" />
+    <svg className="logo" viewBox="0 0 20 20" aria-hidden="true">
       {Array.from({ length: 6 }).map((_, i) => {
         const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-        return <circle key={i} cx={16 + 9.5 * Math.cos(a)} cy={16 + 9.5 * Math.sin(a)} r="2.2" fill="#fff" opacity="0.92" />;
+        return <circle key={i} cx={10 + 7.5 * Math.cos(a)} cy={10 + 7.5 * Math.sin(a)} r="1.6" fill="currentColor" />;
       })}
-      <circle cx="16" cy="16" r="4.6" fill="url(#logo-p)" />
+      <circle cx="10" cy="10" r="3.4" fill="currentColor" />
     </svg>
-  );
-}
-
-// A colorful avatar derived from the wallet address, so members are easy to tell apart.
-function Avatar({ pk }) {
-  const s = pk.toBase58();
-  let h = 0;
-  for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 360;
-  return (
-    <span
-      className="avatar"
-      aria-hidden="true"
-      style={{ background: `linear-gradient(135deg, hsl(${h} 75% 62%), hsl(${(h + 50) % 360} 70% 48%))` }}
-    />
   );
 }
 
@@ -165,10 +122,7 @@ export default function App() {
       </header>
 
       <section className="hero">
-        <span className="eyebrow"><b>New</b> On-chain savings circles with an AI agent</span>
-        <h1>
-          Ipon nang <span className="grad-text">walang takbuhan.</span>
-        </h1>
+        <h1>Ipon nang walang takbuhan.</h1>
         <p>
           A paluwagan where the pot is held by a Solana program, not a person.
           Everyone sees who has paid, the payout order is drawn on-chain, and
@@ -208,7 +162,7 @@ export default function App() {
         <section className="groups">
           <div className="groups-head">
             <h2>Groups {!loading && <span className="count">{groups.length}</span>}</h2>
-            <button className="ghost" onClick={refresh}>{Icon.refresh} Refresh</button>
+            <button className="ghost" onClick={refresh}>Refresh</button>
           </div>
           {loading && (
             <div aria-label="Loading groups from Solana" role="status">
@@ -289,7 +243,7 @@ function CreateGroup({ send, busy, wallet }) {
 
   return (
     <div className="panel">
-      <h2><span className="icon-chip">{Icon.plus}</span>Start a paluwagan</h2>
+      <h2>Start a paluwagan</h2>
       <p className="muted small">Describe it in your own words, or fill in the form.</p>
 
       <label className="field">
@@ -303,7 +257,7 @@ function CreateGroup({ send, busy, wallet }) {
         />
       </label>
       <button className="secondary block" onClick={askCoach} disabled={!text.trim() || coachBusy}>
-        {coachBusy ? <><Spinner /> Asking the coach…</> : <>{Icon.sparkle} Ask the AI coach</>}
+        {coachBusy ? <><Spinner /> Asking the coach…</> : "Ask the AI coach"}
       </button>
       {coachNote && <p className={`note ${coachNote.kind}`}>{coachNote.text}</p>}
 
@@ -442,7 +396,6 @@ function GroupCard({ group: g, me, send, busy }) {
           const turn = g.payoutOrder.length ? g.payoutOrder.indexOf(i) + 1 : null;
           return (
             <li key={m.toBase58()} className={me && m.equals(me) ? "me" : undefined}>
-              <Avatar pk={m} />
               <span className="who">
                 {shortKey(m)}
                 {me && m.equals(me) && <em className="you">you</em>}
@@ -497,7 +450,7 @@ function GroupCard({ group: g, me, send, busy }) {
 
         {g.state === STATE.ACTIVE && g.allPaid && (
           <button
-            className="primary pot-btn"
+            className="primary"
             disabled={!me || busy === `payout-${id}`}
             onClick={() =>
               send(
@@ -513,7 +466,7 @@ function GroupCard({ group: g, me, send, busy }) {
 
         {g.state !== STATE.COMPLETED && (
           <button className="ghost" onClick={askCoach} disabled={coachBusy}>
-            {coachBusy ? <><Spinner /> Thinking…</> : <>{Icon.sparkle} Ask the coach</>}
+            {coachBusy ? <><Spinner /> Thinking…</> : "Ask the coach"}
           </button>
         )}
 
@@ -544,7 +497,6 @@ function Circle({ group: g, me }) {
   const slots = g.state === STATE.OPEN ? Math.max(g.maxMembers, n) : n;
   const order = g.payoutOrder.length ? g.payoutOrder : g.members.map((_, i) => i);
   const size = 220;
-  const gid = `pot-${g.address.toBase58().slice(0, 8)}`;
   const r = 84;
   const c = size / 2;
 
@@ -552,15 +504,8 @@ function Circle({ group: g, me }) {
     <div className="circle-wrap">
       <svg viewBox={`0 0 ${size} ${size}`} className="circle" role="img"
         aria-label={`${n} members around the pot`}>
-        <defs>
-          <radialGradient id={gid} cx="35%" cy="30%" r="75%">
-            <stop offset="0" stopColor="#ffe29a" />
-            <stop offset="1" stopColor="#f5a524" />
-          </radialGradient>
-        </defs>
         <circle cx={c} cy={c} r={r} className="ring" />
-        <circle cx={c} cy={c} r={48} className="pot-glow" />
-        <circle cx={c} cy={c} r={34} fill={`url(#${gid})`} />
+        <circle cx={c} cy={c} r={34} className="pot-dot" />
         <text x={c} y={c + 5} textAnchor="middle" className="pot-text">
           {g.state === STATE.COMPLETED ? "Done" : g.state === STATE.OPEN ? "Open" : `R${g.currentRound + 1}`}
         </text>
@@ -622,14 +567,14 @@ function AgentPanel({ onDone }) {
 
   return (
     <div className="panel agent">
-      <h2><span className="icon-chip pot">{Icon.bot}</span>Paluwagan Agent</h2>
+      <h2>Paluwagan Agent</h2>
       <p className="muted small">
         An AI agent with its own wallet. It checks every group on-chain, releases
         pots when everyone has paid, and reminds members who haven't. The program
         still decides who gets paid, so the agent can't send money anywhere else.
       </p>
       <button className="primary block" onClick={run} disabled={running}>
-        {running ? <><Spinner /> Agent is working…</> : <>{Icon.bot} Run the agent</>}
+        {running ? <><Spinner /> Agent is working…</> : "Run the agent"}
       </button>
 
       {result?.error && <p className="note error">{result.error}</p>}
