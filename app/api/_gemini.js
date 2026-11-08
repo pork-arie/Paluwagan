@@ -14,7 +14,10 @@ async function postJson(url, headers, body) {
     });
     if (!res.ok) {
       const detail = await res.text();
-      throw new Error(`AI request failed (${res.status}): ${detail.slice(0, 200)}`);
+      const err = new Error(`AI request failed (${res.status}): ${detail.slice(0, 200)}`);
+      err.status = res.status;
+      err.modelNotFound = res.status === 404 || /model_not_found|decommissioned/.test(detail);
+      throw err;
     }
     return await res.json();
   } catch (e) {
@@ -25,12 +28,33 @@ async function postJson(url, headers, body) {
   }
 }
 
+// Groq retires models regularly, so try a few in order and skip any that are gone.
+const GROQ_MODELS = [
+  process.env.GROQ_MODEL,
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b",
+].filter((m, i, all) => m && all.indexOf(m) === i);
+
 async function askGroq(input, schema) {
+  let lastErr;
+  for (const model of GROQ_MODELS) {
+    try {
+      return await askGroqModel(model, input, schema);
+    } catch (e) {
+      lastErr = e;
+      if (!e.modelNotFound) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+async function askGroqModel(model, input, schema) {
   const data = await postJson(
     "https://api.groq.com/openai/v1/chat/completions",
     { Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
     {
-      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      model,
       temperature: 0.3,
       response_format: { type: "json_object" },
       messages: [
@@ -67,7 +91,14 @@ async function askGeminiApi(input, schema) {
 
 // Same name as before so coach.js and agent.js don't need changes.
 export async function askGemini(input, schema) {
-  if (process.env.GROQ_API_KEY) return askGroq(input, schema);
+  if (process.env.GROQ_API_KEY) {
+    try {
+      return await askGroq(input, schema);
+    } catch (e) {
+      if (!process.env.GEMINI_API_KEY) throw e;
+      console.error("[ai] Groq failed, falling back to Gemini:", e.message);
+    }
+  }
   if (process.env.GEMINI_API_KEY) return askGeminiApi(input, schema);
   throw new Error("Set GROQ_API_KEY (or GEMINI_API_KEY) on the server");
 }
