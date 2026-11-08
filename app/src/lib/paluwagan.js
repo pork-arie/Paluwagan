@@ -30,7 +30,13 @@ export const lamportsToSol = (lamports) => Number(lamports) / LAMPORTS_PER_SOL;
 
 async function sha256(text) {
   const bytes = new TextEncoder().encode(text);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  // Browsers and Node 19+ expose Web Crypto globally; older Node needs node:crypto.
+  let subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    const nodeCrypto = "node:crypto";
+    subtle = (await import(/* @vite-ignore */ nodeCrypto)).webcrypto.subtle;
+  }
+  const hash = await subtle.digest("SHA-256", bytes);
   return new Uint8Array(hash);
 }
 

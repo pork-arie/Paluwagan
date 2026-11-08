@@ -6,15 +6,9 @@
 //
 // POST /api/agent  -> { agent, balanceSol, actions: [...] }
 
-import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { askGemini } from "./_gemini.js";
-import {
-  STATE,
-  fetchGroups,
-  lamportsToPhp,
-  payoutTx,
-  shortKey,
-} from "../src/lib/paluwagan.js";
+// Dependencies are loaded with dynamic import() inside the handler's try/catch,
+// so a module-load failure comes back as JSON instead of Vercel's plain-text
+// "A server error has occurred" page.
 
 const PLAN_SCHEMA = {
   type: "object",
@@ -38,10 +32,21 @@ const PLAN_SCHEMA = {
   required: ["actions"],
 };
 
-function loadAgent() {
-  const raw = process.env.AGENT_SECRET_KEY;
+function loadAgent(Keypair) {
+  let raw = (process.env.AGENT_SECRET_KEY || "").trim();
   if (!raw) throw new Error("AGENT_SECRET_KEY is not set. Run `npm run agent:new` and add it to your env.");
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
+  // Tolerate the value being pasted with surrounding quotes or the "AGENT_SECRET_KEY=" prefix.
+  raw = raw.replace(/^AGENT_SECRET_KEY=/, "").replace(/^['"]|['"]$/g, "").trim();
+  let bytes;
+  try {
+    bytes = JSON.parse(raw);
+  } catch {
+    throw new Error("AGENT_SECRET_KEY must be a JSON array like [12,34,...] (the output of `npm run agent:new`).");
+  }
+  if (!Array.isArray(bytes) || bytes.length !== 64) {
+    throw new Error(`AGENT_SECRET_KEY must be an array of 64 numbers, got ${Array.isArray(bytes) ? bytes.length : typeof bytes}.`);
+  }
+  return Keypair.fromSecretKey(Uint8Array.from(bytes));
 }
 
 // If Gemini is unavailable, fall back to simple rules so the agent still works.
@@ -59,7 +64,11 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
   try {
-    const agent = loadAgent();
+    const { Connection, Keypair, clusterApiUrl } = await import("@solana/web3.js");
+    const { askGemini } = await import("./_gemini.js");
+    const { STATE, fetchGroups, lamportsToPhp, payoutTx, shortKey } = await import("../src/lib/paluwagan.js");
+
+    const agent = loadAgent(Keypair);
     const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
     const balance = await connection.getBalance(agent.publicKey);
 
@@ -138,6 +147,7 @@ export default async function handler(req, res) {
       actions,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("[agent]", err);
+    return res.status(500).json({ error: err?.message || String(err) });
   }
 }

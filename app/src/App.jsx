@@ -18,6 +18,20 @@ import {
   startAndDrawTx,
 } from "./lib/paluwagan";
 
+// Read an API response safely. If the server crashed and returned plain text
+// (e.g. Vercel's "A server error has occurred"), show that text instead of a JSON parse error.
+async function readJson(res) {
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Server error (${res.status}): ${text.slice(0, 200) || res.statusText}`);
+  }
+  if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
+  return data;
+}
+
 const peso = (n) =>
   "₱" + Number(n).toLocaleString("en-PH", { maximumFractionDigits: 2 });
 
@@ -154,8 +168,7 @@ function CreateGroup({ send, busy, wallet }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "setup", text }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readJson(res);
       setForm({ name: data.name, php: data.contributionPhp, members: data.members });
       setCoachNote({ kind: "ok", text: `${data.explanation} (${data.schedule})` });
     } catch (e) {
@@ -284,8 +297,7 @@ function GroupCard({ group: g, me, send, busy }) {
           },
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readJson(res);
       setCoach(data);
     } catch (e) {
       setCoach({ summary: `Coach is unavailable: ${e.message}`, advice: "", risk: "medium" });
@@ -473,8 +485,7 @@ function AgentPanel({ onDone }) {
     setRunning(true);
     try {
       const res = await fetch("/api/agent", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readJson(res);
       setResult(data);
       await onDone();
     } catch (e) {
